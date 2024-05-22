@@ -1,5 +1,6 @@
 package com.ps;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Scanner;
 
@@ -23,6 +24,8 @@ public class UserInterface {
             System.out.println("7- List ALL vehicles");
             System.out.println("8- Add a vehicle");
             System.out.println("9- Remove a vehicle");
+            System.out.println("10- Record a Sale");
+            System.out.println("11- Record a Lease");
             System.out.println("99- Quit");
 
             System.out.print("Please choose an option: ");
@@ -57,6 +60,12 @@ public class UserInterface {
                 case 9:
                     processRemoveVehicleRequest();
                     break;
+                case 10:
+                    processRecordSaleRequest();
+                    break;
+                case 11:
+                    processRecordLeaseRequest();
+                    break;
                 case 99:
                     break;
             }
@@ -70,7 +79,6 @@ public class UserInterface {
     private void displayVehicles(List<Vehicle> vehicles){
 
         for(Vehicle vehicle: vehicles){
-//            "----  All Vehicles ----
             System.out.printf("VIN: %d, Year: %d, Make: %s, Model: %s, Type: %s, Color: %s, Odometer: %d, Price: %.2f\n",
                     vehicle.getVin(),
                     vehicle.getYear(),
@@ -195,4 +203,99 @@ public class UserInterface {
 
         System.out.println("Vehicle not found");
     }
+
+    public void processRecordSaleRequest(){
+
+        System.out.println("Enter date of contract (YYYYMMDD): ");
+        String dateOfContract = scanner.next();
+
+        System.out.println("Enter customer name: ");
+        String customerName = scanner.next();
+
+        scanner.nextLine();
+
+        System.out.println("Enter customer email: ");
+        String customerEmail = scanner.next();
+
+        System.out.println("Enter VIN of vehicle sold: ");
+        int vin = scanner.nextInt();
+
+        Vehicle vehicleSold = dealership.findVehicleByVIN(vin);
+        if(vehicleSold == null){
+            System.out.println("Vehicle with VIN " + vin + " not found.");
+            return;
+        }
+
+        double salesTaxAmount = vehicleSold.getPrice() * 0.05;
+
+        System.out.println("Is the sale financed? (yes/no): ");
+        String financeInput = scanner.next();
+        boolean finance = financeInput.equalsIgnoreCase("yes");
+
+        SalesContract salesContract = new SalesContract(
+                dateOfContract,
+                customerName,
+                customerEmail,
+                vehicleSold.toString(),
+                salesTaxAmount,
+                finance
+                );
+        ContractFileManager.saveContract(salesContract);
+
+        dealership.removeVehicle(vehicleSold);
+        DealershipFileManager.saveDealership(this.dealership);
+
+        System.out.println("Sales recorded successfully");
+
+    }
+
+    public void processRecordLeaseRequest(){
+
+        System.out.println("Enter date of contract (YYYYMMDD): ");
+        String dateOfContract = scanner.next();
+
+        System.out.println("Enter customer name: ");
+        String customerName = scanner.next();
+
+        scanner.nextLine();
+
+        System.out.println("Enter customer email: ");
+        String customerEmail = scanner.next();
+
+        System.out.println("Enter VIN of the  vehicle leased: ");
+        int vin = scanner.nextInt();
+
+        Vehicle vehicleLeased = dealership.findVehicleByVIN(vin);
+        if (vehicleLeased == null){
+            System.out.println("Vehicle with VIN " + vin + " not found.");
+            return;
+        }
+
+        int currentYear = LocalDate.now().getYear();
+        if (currentYear - vehicleLeased.getYear() > 3){
+            System.out.println("Cannot lease a vehicle over 3 years old.");
+            return;
+        }
+
+        double expectedEndingValue = vehicleLeased.getPrice() * 0.05;
+        double leaseFee = vehicleLeased.getPrice() * 0.07;
+        double totalPrice = vehicleLeased.getPrice() + leaseFee;
+
+        LeaseContract leaseContract = new LeaseContract(
+                dateOfContract,
+                customerName,
+                customerEmail,
+                vehicleLeased.toString()
+        );
+
+
+        ContractFileManager.saveContract(leaseContract);
+
+        dealership.removeVehicle(vehicleLeased);
+        DealershipFileManager.saveDealership(this.dealership);
+
+        System.out.println("Lease recorded successfully.");
+
+    }
+
 }
